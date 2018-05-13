@@ -18,7 +18,7 @@ class SUNRGBDLoader(data.Dataset):
     def __init__(self, root, split="training", is_transform=False, img_size=(480, 640), img_norm=True):
         self.root = root
         self.is_transform = is_transform
-        self.n_classes = 37
+        self.n_classes = 38
         self.img_norm = img_norm
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.mean = np.array([104.00699, 116.66877, 122.67892])
@@ -93,6 +93,7 @@ class SUNRGBDLoader(data.Dataset):
         classes = np.unique(lbl)
         lbl = lbl.astype(float)
         lbl = m.imresize(lbl, (self.img_size[0], self.img_size[1]), 'nearest', mode='F')
+        lbl = lbl[np.newaxis,:]
         lbl = lbl.astype(int)
         assert(np.all(classes == np.unique(lbl)))
 

@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 def cross_entropy2d(input, target, weight=None, size_average=True):
     n, c, h, w = input.size()
-    nt, ht, wt = target.size()
+    nt, ct, ht, wt = target.size()
 
     # Handle inconsistent size between input and target
     if h > ht and w > wt: # upsample labels
