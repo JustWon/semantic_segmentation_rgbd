@@ -13,28 +13,27 @@ from ptsemseg.utils import recursive_glob
 from ptsemseg.augmentations import *
 
 
-class SUNRGBDLoader(data.Dataset):
-    """SUNRGBD loader
+class NYUv2Loader(data.Dataset):
+    """NYUv2 loader
+    
+    Download From (only 13 classes): 
+        test source: http://www.doc.ic.ac.uk/~ahanda/nyu_test_rgb.tgz
+        train source: http://www.doc.ic.ac.uk/~ahanda/nyu_train_rgb.tgz
+        test_labels source: https://github.com/ankurhanda/nyuv2-meta-data/raw/master/test_labels_13/nyuv2_test_class13.tgz
+        train_labels source: https://github.com/ankurhanda/nyuv2-meta-data/raw/master/train_labels_13/nyuv2_train_class13.tgz
 
-    Download From: 
-    http://www.doc.ic.ac.uk/~ahanda/SUNRGBD-test_images.tgz
-        test source: http://www.doc.ic.ac.uk/~ahanda/SUNRGBD-test_images.tgz
-        train source: http://www.doc.ic.ac.uk/~ahanda/SUNRGBD-train_images.tgz
-
-        first 5050 in this is test, later 5051 is train
-        test and train labels source: https://github.com/ankurhanda/sunrgbd-meta-data/raw/master/sunrgbd_train_test_labels.tar.gz
     """
-
-    def __init__(self, root, split="training", is_transform=False, img_size=(480, 640), augmentations=None, img_norm=True):
+    
+    
+    def __init__(self, root, split="training", is_transform=False, img_size=(480,640), augmentations=None, img_norm=True):
         self.root = root
         self.is_transform = is_transform
-        self.n_classes = 38
+        self.n_classes = 14
         self.augmentations = augmentations
         self.img_norm = img_norm
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.mean = np.array([104.00699, 116.66877, 122.67892])
         self.files = collections.defaultdict(list)
-        self.anno_files = collections.defaultdict(list)
         self.cmap = self.color_map(normalized=False)
 
         split_map = {"training": 'train',
@@ -42,13 +41,8 @@ class SUNRGBDLoader(data.Dataset):
         self.split = split_map[split]
 
         for split in ["train", "test"]:
-            file_list =  sorted(recursive_glob(rootdir=self.root + split + '/', suffix='jpg'))
+            file_list =  recursive_glob(rootdir=self.root + split + '/', suffix='png')
             self.files[split] = file_list
-
-        for split in ["train", "test"]:
-            file_list =  sorted(recursive_glob(rootdir=self.root + 'annotations/' + split + '/', suffix='png'))
-            self.anno_files[split] = file_list
-
 
     def __len__(self):
         return len(self.files[self.split])
@@ -56,9 +50,8 @@ class SUNRGBDLoader(data.Dataset):
 
     def __getitem__(self, index):
         img_path = self.files[self.split][index].rstrip()
-        lbl_path = self.anno_files[self.split][index].rstrip()
-        # img_number = img_path.split('/')[-1]
-        # lbl_path = os.path.join(self.root, 'annotations', img_number).replace('jpg', 'png')
+        img_number = img_path.split('_')[-1][:4]
+        lbl_path = os.path.join(self.root, self.split + '_annot', 'new_nyu_class13_' + img_number + '.png')
 
         img = m.imread(img_path)    
         img = np.array(img, dtype=np.uint8)
@@ -150,8 +143,8 @@ if __name__ == '__main__':
                              RandomRotate(10),
                              RandomHorizontallyFlip()])
 
-    local_path = '/home/meet/datasets/SUNRGBD/'
-    dst = SUNRGBDLoader(local_path, is_transform=True, augmentations=augmentations)
+    local_path = '/home/meet/datasets/NYUv2/'
+    dst = NYUv2Loader(local_path, is_transform=True, augmentations=augmentations)
     bs = 4
     trainloader = data.DataLoader(dst, batch_size=bs, num_workers=0)
     for i, data in enumerate(trainloader):
