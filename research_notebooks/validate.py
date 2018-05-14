@@ -20,51 +20,54 @@ from ptsemseg.loader import get_loader, get_data_path
 from ptsemseg.metrics import runningScore
 from ptsemseg.utils import convert_state_dict
 
+from SUNRGBDLoader import *
+from NYUDv2Loader import *
+
 torch.backends.cudnn.benchmark = True
 
 cudnn.benchmark = True
 
 def validate(args):
-    model_file_name = os.path.split(args.model_path)[1]
-    model_name = model_file_name[:model_file_name.find('_')]
 
-    # Setup Dataloader
-    data_loader = get_loader(args.dataset)
-    data_path = get_data_path(args.dataset)
-    loader = data_loader(data_path, split=args.split, is_transform=True, img_size=(args.img_rows, args.img_cols), img_norm=args.img_norm)
-    n_classes = loader.n_classes
-    valloader = data.DataLoader(loader, batch_size=args.batch_size, num_workers=4)
+    model_name = args.model_name
+
+    if (args.dataset == 'NYUDv2'):
+        data_path = '/home/dongwonshin/Desktop/Datasets/NYUDv2/'
+        t_loader = NYUDv2Loader(data_path, is_transform=True)
+        v_loader = NYUDv2Loader(data_path, is_transform=True, split='val')
+    elif (args.dataset == 'SUNRGBD'):
+        data_path = '/home/dongwonshin/Desktop/Datasets/SUNRGBD/SUNRGBD(light)/'
+        t_loader = SUNRGBDLoader(data_path, is_transform=True)
+        v_loader = SUNRGBDLoader(data_path, is_transform=True, split='val')
+
+    n_classes = t_loader.n_classes
+    trainloader = data.DataLoader(t_loader, batch_size=args.batch_size, num_workers=16, shuffle=True)
+    valloader = data.DataLoader(v_loader, batch_size=args.batch_size, num_workers=16)
+
+    # Setup Metrics
     running_metrics = runningScore(n_classes)
 
     # Setup Model
     print(model_name)
-    model = get_model(model_name, n_classes, version=args.dataset)
+    model = get_model(model_name, n_classes)
     state = convert_state_dict(torch.load(args.model_path)['model_state'])
     model.load_state_dict(state)
     model.eval()
     model.cuda()
 
-    for i, (images, labels) in enumerate(valloader):
+    for i, (images, depths, labels) in enumerate(valloader):
         start_time = timeit.default_timer()
 
         images = Variable(images.cuda(), volatile=True)
+        depths = Variable(depths.cuda(), volatile=True)
         #labels = Variable(labels.cuda(), volatile=True)
 
-        if args.eval_flip:
+        if (model_name == 'fcn8s'):
             outputs = model(images)
-
-            # Flip images in numpy (not support in tensor)
-            outputs = outputs.data.cpu().numpy()
-            flipped_images = np.copy(images.data.cpu().numpy()[:, :, :, ::-1])
-            flipped_images = Variable(torch.from_numpy( flipped_images ).float().cuda(), volatile=True)
-            outputs_flipped = model( flipped_images )
-            outputs_flipped = outputs_flipped.data.cpu().numpy()
-            outputs = (outputs + outputs_flipped[:, :, :, ::-1]) / 2.0
-
-            pred = np.argmax(outputs, axis=1)
         else:
-            outputs = model(images)
-            pred = outputs.data.max(1)[1].cpu().numpy()
+            outputs = model(images, depths)
+
+        pred = outputs.data.max(1)[1].cpu().numpy()
 
         #gt = labels.data.cpu().numpy()
         gt = labels.numpy()
