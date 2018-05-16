@@ -28,6 +28,8 @@ class SUNRGBDLoader(data.Dataset):
         self.label_files = collections.defaultdict(list)
         self.cmap = self.color_map(normalized=False)
 
+        print("hello dongwonshin")
+
         split_map = {"training": 'train', "val": 'test',}
         self.split = split_map[split]
 
