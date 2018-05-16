@@ -99,10 +99,10 @@ class ReNet(nn.Module):
     
 
 # FCN 8s
-class fcn8s_rgbd_renet(nn.Module):
+class fcn8s_rgbd_renet_maskedconv(nn.Module):
 
     def __init__(self, n_classes=21, learned_billinear=False):
-        super(fcn8s_rgbd_renet, self).__init__()
+        super(fcn8s_rgbd_renet_maskedconv, self).__init__()
         self.learned_billinear = learned_billinear
         self.n_classes = n_classes
 
@@ -205,7 +205,7 @@ class fcn8s_rgbd_renet(nn.Module):
         depth_conv3 = self.conv_block3(depth_conv2)
         depth_conv4 = self.conv_block4(depth_conv3)
         depth_conv5 = self.conv_block5(depth_conv4)
-        depth_masked_conv = self.depth_masked_conv(depth_conv5)
+        depth_masked_conv = self.masked_conv(depth_conv5)
         
         depth_score = self.classifier(depth_masked_conv)
         depth_score_pool4 = self.score_pool4(depth_conv4)

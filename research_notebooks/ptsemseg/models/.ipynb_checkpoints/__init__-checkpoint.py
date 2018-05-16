@@ -4,6 +4,7 @@ from ptsemseg.models.fcn import *
 from ptsemseg.models.fcn_with_maskedconv import *
 from ptsemseg.models.fcn8s_with_rgbd import *
 from ptsemseg.models.fcn8s_rgbd_renet import *
+from ptsemseg.models.fcn8s_rgbd_renet_maskedconv import *
 from ptsemseg.models.segnet import *
 from ptsemseg.models.unet import *
 from ptsemseg.models.pspnet import *
@@ -34,6 +35,11 @@ def get_model(name, n_classes, version=None):
         model.init_vgg16_params(vgg16)
         
     elif name == 'fcn8s_rgbd_renet':
+        model = model(n_classes=n_classes)
+        vgg16 = models.vgg16(pretrained=True)
+        model.init_vgg16_params(vgg16)
+        
+    elif name == 'fcn8s_rgbd_renet_maskedconv':
         model = model(n_classes=n_classes)
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
@@ -72,6 +78,7 @@ def _get_model_instance(name):
             'fcn(masked)' : fcn_with_maskedconv,
             'fcn8s_with_rgbd' : fcn8s_with_rgbd,
             'fcn8s_rgbd_renet' : fcn8s_rgbd_renet,
+            'fcn8s_rgbd_renet_maskedconv' : fcn8s_rgbd_renet_maskedconv,
             'unet': unet,
             'segnet': segnet,
             'pspnet': pspnet,
