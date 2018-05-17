@@ -6,6 +6,7 @@ from ptsemseg.models.fcn8s_with_rgbd import *
 from ptsemseg.models.fcn8s_rgbd_renet import *
 from ptsemseg.models.fcn8s_rgbd_renet_maskedconv import *
 from ptsemseg.models.mynetwork20180516 import *
+from ptsemseg.models.mynetwork20180517 import *
 from ptsemseg.models.segnet import *
 from ptsemseg.models.unet import *
 from ptsemseg.models.pspnet import *
@@ -45,7 +46,7 @@ def get_model(name, n_classes, version=None):
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
     
-    elif name == 'mynetwork20180516':
+    elif name in ['mynetwork20180516', 'mynetwork20180517']:
         model = model(n_classes=n_classes)
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
@@ -86,6 +87,7 @@ def _get_model_instance(name):
             'fcn8s_rgbd_renet' : fcn8s_rgbd_renet,
             'fcn8s_rgbd_renet_maskedconv' : fcn8s_rgbd_renet_maskedconv,
             'mynetwork20180516' : mynetwork20180516,
+            'mynetwork20180517' : mynetwork20180517,
             'unet': unet,
             'segnet': segnet,
             'pspnet': pspnet,
