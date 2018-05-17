@@ -36,7 +36,7 @@ class NYUDv2Loader(data.Dataset):
             self.color_files[split] = file_list
         
         for split in ["train", "test"]:
-            file_list =  sorted(recursive_glob(rootdir=self.root + split +'/depth/', suffix='npy'))
+            file_list =  sorted(recursive_glob(rootdir=self.root + split +'/depth/', suffix='png'))
             self.depth_files[split] = file_list    
         
         for split in ["train", "test"]:
@@ -56,7 +56,7 @@ class NYUDv2Loader(data.Dataset):
         color_img = m.imread(color_path)    
         color_img = np.array(color_img, dtype=np.uint8)
 
-        depth_img = np.load(depth_path)    
+        depth_img = np.imread(depth_path)    
         depth_img = np.array(depth_img)
         
         label_img = m.imread(label_path)    

@@ -14,7 +14,7 @@ def recursive_glob(rootdir='.', suffix=''):
         for looproot, _, filenames in os.walk(rootdir)
         for filename in filenames if filename.endswith(suffix)]
 
-class NYUDv2Loader(data.Dataset):
+class NYUDv2Loader_HHA(data.Dataset):
     def __init__(self, root, split="training", is_transform=False, img_size=(480, 640), img_norm=True):
         self.root = root
         self.is_transform = is_transform
@@ -36,7 +36,7 @@ class NYUDv2Loader(data.Dataset):
             self.color_files[split] = file_list
         
         for split in ["train", "test"]:
-            file_list =  sorted(recursive_glob(rootdir=self.root + split +'/depth/', suffix='png'))
+            file_list =  sorted(recursive_glob(rootdir=self.root + split +'/HHA/', suffix='png'))
             self.depth_files[split] = file_list    
         
         for split in ["train", "test"]:
@@ -82,12 +82,12 @@ class NYUDv2Loader(data.Dataset):
         
         depth_img = m.imresize(depth_img, (self.img_size[0], self.img_size[1]))
         depth_img = depth_img.astype(np.float64)
-        depth_img = depth_img[np.newaxis,:]
         depth_img -= self.depth_mean
         if self.img_norm:
             # Resize scales images from 0 to 255, thus we need
             # to divide by 255.0
             depth_img = depth_img.astype(float) / 255.0
+        depth_img = depth_img.transpose(2, 0, 1)
         
 
         classes = np.unique(lbl)
