@@ -172,7 +172,6 @@ class mynetwork20180516(nn.Module):
 
         self.score_pool4 = nn.Conv2d(512, self.n_classes, 1)
         self.score_pool3 = nn.Conv2d(256, self.n_classes, 1)
-        
 
         # TODO: Add support for learned upsampling
         if self.learned_billinear:
