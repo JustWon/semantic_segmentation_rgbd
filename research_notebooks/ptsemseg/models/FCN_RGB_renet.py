@@ -98,22 +98,14 @@ class ReNet(nn.Module):
         return x
     
 
-# FCN 8s
-class fcn_hha(nn.Module):
+class FCN_RGB_renet(nn.Module):
 
     def __init__(self, n_classes=21, learned_billinear=False):
-        super(fcn_hha, self).__init__()
+        super(FCN_RGB_renet, self).__init__()
         self.learned_billinear = learned_billinear
         self.n_classes = n_classes
 
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(3, 64, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(2, stride=2, ceil_mode=True),)
-        
-        self.depth_conv_block1 = nn.Sequential(
             nn.Conv2d(3, 64, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 64, 3, padding=1),
@@ -153,13 +145,6 @@ class fcn_hha(nn.Module):
             nn.Conv2d(512, 512, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(2, stride=2, ceil_mode=True),)
-        
-        fm = 512
-        self.masked_conv = nn.Sequential(
-            MaskedConv2d('A', fm, fm, 7, 1, 3, bias=False), nn.BatchNorm2d(fm), nn.ReLU(True),
-            MaskedConv2d('B', fm, fm, 7, 1, 3, bias=False), nn.BatchNorm2d(fm), nn.ReLU(True),
-            nn.Conv2d(fm, 512, 1)
-        )
 
         self.classifier = nn.Sequential(
             nn.Conv2d(512, 4096, 7),
@@ -172,9 +157,9 @@ class fcn_hha(nn.Module):
 
         self.score_pool4 = nn.Conv2d(512, self.n_classes, 1)
         self.score_pool3 = nn.Conv2d(256, self.n_classes, 1)
-
-        self.renet1 = ReNet(512, 256)
-        self.renet2 = ReNet(256, 128)
+        
+        self.renet3 = ReNet(256, 128)
+        self.renet4 = ReNet(512, 256)
 
         # TODO: Add support for learned upsampling
         if self.learned_billinear:
@@ -182,45 +167,24 @@ class fcn_hha(nn.Module):
             # upscore = nn.ConvTranspose2d(self.n_classes, self.n_classes, 64, stride=32, bias=False)
             # upscore.scale_factor = None
 
-    def forward(self, color, depth):
+    def forward(self, color):
         conv1 = self.conv_block1(color)
         conv2 = self.conv_block2(conv1)
         conv3 = self.conv_block3(conv2)
         conv4 = self.conv_block4(conv3)
         conv5 = self.conv_block5(conv4)
-        masked_conv = self.masked_conv(conv5)
         
-        score = self.classifier(masked_conv)
-        conv4 = self.renet1(conv4)
+        score = self.classifier(conv5)
+        
+        conv4 = self.renet4(conv4)
         score_pool4 = self.score_pool4(conv4)
-        conv3 = self.renet2(conv3)
+        conv3 = self.renet3(conv3)
         score_pool3 = self.score_pool3(conv3)
         
         score = F.upsample_bilinear(score, score_pool4.size()[2:])
         score += score_pool4        
         score = F.upsample_bilinear(score, score_pool3.size()[2:])
-        score += score_pool3
-        
-        depth_conv1 = self.depth_conv_block1(depth)
-        depth_conv2 = self.conv_block2(depth_conv1)
-        depth_conv3 = self.conv_block3(depth_conv2)
-        depth_conv4 = self.conv_block4(depth_conv3)
-        depth_conv5 = self.conv_block5(depth_conv4)
-        depth_masked_conv = self.masked_conv(depth_conv5)
-        
-        depth_score = self.classifier(depth_masked_conv)
-        depth_conv4 = self.renet1(depth_conv4)
-        depth_score_pool4 = self.score_pool4(depth_conv4)
-        depth_conv3 = self.renet2(depth_conv3)
-        depth_score_pool3 = self.score_pool3(depth_conv3)
-
-        depth_score = F.upsample_bilinear(depth_score, depth_score_pool4.size()[2:])
-        depth_score += depth_score_pool4        
-        depth_score = F.upsample_bilinear(depth_score, depth_score_pool3.size()[2:])
-        depth_score += depth_score_pool3
-        
-        score += depth_score
-        
+        score += score_pool3        
         out = F.upsample_bilinear(score, color.size()[2:])
 
         return out

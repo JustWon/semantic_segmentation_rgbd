@@ -14,6 +14,12 @@ from ptsemseg.models.icnet import *
 from ptsemseg.models.linknet import *
 from ptsemseg.models.frrn import *
 
+from ptsemseg.models.FCN_RGB import *
+from ptsemseg.models.FCN_RGB_mask import *
+from ptsemseg.models.FCN_RGB_renet import *
+from ptsemseg.models.FCN_RGBD import *
+from ptsemseg.models.FCN_RGBD_mask import *
+from ptsemseg.models.FCN_RGBD_renet import *
 
 def get_model(name, n_classes, version=None):
     model = _get_model_instance(name)
@@ -55,6 +61,12 @@ def get_model(name, n_classes, version=None):
         model = model(n_classes=n_classes)
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
+    
+    elif name in ['FCN_RGB', 'FCN_RGB_mask', 'FCN_RGB_renet',
+                  'FCN_RGBD', 'FCN_RGBD_mask', 'FCN_RGBD_renet']:
+        model = model(n_classes=n_classes)
+        vgg16 = models.vgg16(pretrained=True)
+        model.init_vgg16_params(vgg16)
         
     elif name == 'segnet':
         model = model(n_classes=n_classes,
@@ -93,6 +105,12 @@ def _get_model_instance(name):
             'fcn8s_rgbd_renet_maskedconv' : fcn8s_rgbd_renet_maskedconv,
             'mynetwork20180516' : mynetwork20180516,
             'fcn_hha' : fcn_hha,
+            'FCN_RGB' : FCN_RGB,
+            'FCN_RGB_mask' : FCN_RGB_mask,
+            'FCN_RGB_renet' : FCN_RGB_renet,
+            'FCN_RGBD' : FCN_RGBD,
+            'FCN_RGBD_mask' : FCN_RGBD_mask,
+            'FCN_RGBD_renet' : FCN_RGBD_renet,
             'unet': unet,
             'segnet': segnet,
             'pspnet': pspnet,

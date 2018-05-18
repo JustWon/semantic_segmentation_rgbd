@@ -22,6 +22,7 @@ from ptsemseg.utils import convert_state_dict
 
 from SUNRGBDLoader import *
 from NYUDv2Loader import *
+from NYUDv2Loader_HHA import *
 
 torch.backends.cudnn.benchmark = True
 
@@ -35,6 +36,10 @@ def validate(args):
         data_path = '/home/dongwonshin/Desktop/Datasets/NYUDv2/'
         t_loader = NYUDv2Loader(data_path, is_transform=True)
         v_loader = NYUDv2Loader(data_path, is_transform=True, split='val')
+    elif (args.dataset == 'NYUDv2_HHA'):
+        data_path = '/home/dongwonshin/Desktop/Datasets/NYUDv2/'
+        t_loader = NYUDv2Loader_HHA(data_path, is_transform=True)
+        v_loader = NYUDv2Loader_HHA(data_path, is_transform=True, split='val')
     elif (args.dataset == 'SUNRGBD'):
         data_path = '/home/dongwonshin/Desktop/Datasets/SUNRGBD/SUNRGBD(light)/'
         t_loader = SUNRGBDLoader(data_path, is_transform=True)

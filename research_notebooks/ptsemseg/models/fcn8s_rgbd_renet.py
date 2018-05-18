@@ -217,6 +217,9 @@ class fcn8s_rgbd_renet(nn.Module):
         depth_score = F.upsample_bilinear(depth_score, depth_score_pool3.size()[2:])
         depth_score += depth_score_pool3
         
+        print('score.shape ', score.shape)
+        print('depth_score.shape ', depth_score.shape)
+        
         score += depth_score
         
         out = F.upsample_bilinear(score, color.size()[2:])
