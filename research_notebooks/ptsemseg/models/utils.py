@@ -5,6 +5,101 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 
+class ReNet(nn.Module):
+
+    def __init__(self, n_input, n_units, patch_size=(1, 1), usegpu=True):
+        super(ReNet, self).__init__()
+
+        self.patch_size_height = int(patch_size[0])
+        self.patch_size_width = int(patch_size[1])
+
+        assert self.patch_size_height >= 1
+        assert self.patch_size_width >= 1
+
+        self.tiling = False if ((self.patch_size_height == 1) and (self.patch_size_width == 1)) else True
+
+        self.rnn_hor = nn.GRU(n_input * self.patch_size_height * self.patch_size_width, n_units,
+                              num_layers=1, batch_first=True, bidirectional=True)
+        self.rnn_ver = nn.GRU(n_units * 2, n_units, num_layers=1, batch_first=True, bidirectional=True)
+
+    def tile(self, x):
+
+        n_height_padding = self.patch_size_height - x.size(2) % self.patch_size_height
+        n_width_padding = self.patch_size_width - x.size(3) % self.patch_size_width
+
+        n_top_padding = n_height_padding / 2
+        n_bottom_padding = n_height_padding - n_top_padding
+
+        n_left_padding = n_width_padding / 2
+        n_right_padding = n_width_padding - n_left_padding
+
+        x = F.pad(x, (n_left_padding, n_right_padding, n_top_padding, n_bottom_padding))
+
+        b, n_filters, n_height, n_width = x.size()
+
+        assert n_height % self.patch_size_height == 0
+        assert n_width % self.patch_size_width == 0
+
+        new_height = n_height / self.patch_size_height
+        new_width = n_width / self.patch_size_width
+
+        x = x.view(b, n_filters, new_height, self.patch_size_height, new_width, self.patch_size_width)
+        x = x.permute(0, 2, 4, 1, 3, 5)
+        x = x.contiguous()
+        x = x.view(b, new_height, new_width, self.patch_size_height * self.patch_size_width * n_filters)
+        x = x.permute(0, 3, 1, 2)
+        x = x.contiguous()
+
+        return x
+
+    def rnn_forward(self, x, hor_or_ver):
+
+        assert hor_or_ver in ['hor', 'ver']
+
+        b, n_height, n_width, n_filters = x.size()
+
+        x = x.view(b * n_height, n_width, n_filters)
+        if hor_or_ver == 'hor':
+            x, _ = self.rnn_hor(x)
+        else:
+            x, _ = self.rnn_ver(x)
+        x = x.contiguous()
+        x = x.view(b, n_height, n_width, -1)
+
+        return x
+
+    def forward(self, x):
+
+                                       #b, nf, h, w
+        if self.tiling:
+            x = self.tile(x)           #b, nf, h, w
+        x = x.permute(0, 2, 3, 1)      #b, h, w, nf
+        x = x.contiguous()
+        x = self.rnn_forward(x, 'hor') #b, h, w, nf
+        x = x.permute(0, 2, 1, 3)      #b, w, h, nf
+        x = x.contiguous()
+        x = self.rnn_forward(x, 'ver') #b, w, h, nf
+        x = x.permute(0, 2, 1, 3)      #b, h, w, nf
+        x = x.contiguous()
+        x = x.permute(0, 3, 1, 2)      #b, nf, h, w
+        x = x.contiguous()
+
+        return x
+    
+class MaskedConv2d(nn.Conv2d):
+    def __init__(self, mask_type, *args, **kwargs):
+        super(MaskedConv2d, self).__init__(*args, **kwargs)
+        assert mask_type in {'A', 'B'}
+        self.register_buffer('mask', self.weight.data.clone())
+        _, _, kH, kW = self.weight.size()
+        self.mask.fill_(1)
+        self.mask[:, :, kH // 2, kW // 2 + (mask_type == 'B'):] = 0
+        self.mask[:, :, kH // 2 + 1:] = 0
+
+    def forward(self, x):
+        self.weight.data *= self.mask
+        return super(MaskedConv2d, self).forward(x)
+
 class conv2DBatchNorm(nn.Module):
     def __init__(self, in_channels, n_filters, k_size,  stride, padding, bias=True, dilation=1, with_bn=True):
         super(conv2DBatchNorm, self).__init__()
@@ -27,20 +122,6 @@ class conv2DBatchNorm(nn.Module):
     def forward(self, inputs):
         outputs = self.cb_unit(inputs)
         return outputs
-
-
-class deconv2DBatchNorm(nn.Module):
-    def __init__(self, in_channels, n_filters, k_size,  stride, padding, bias=True):
-        super(deconv2DBatchNorm, self).__init__()
-
-        self.dcb_unit = nn.Sequential(nn.ConvTranspose2d(int(in_channels), int(n_filters), kernel_size=k_size,
-                                               padding=padding, stride=stride, bias=bias),
-                                 nn.BatchNorm2d(int(n_filters)),)
-
-    def forward(self, inputs):
-        outputs = self.dcb_unit(inputs)
-        return outputs
-
 
 class conv2DBatchNormRelu(nn.Module):
     def __init__(self, in_channels, n_filters, k_size,  stride, padding, bias=True, dilation=1, with_bn=True):
@@ -66,6 +147,28 @@ class conv2DBatchNormRelu(nn.Module):
         outputs = self.cbr_unit(inputs)
         return outputs
 
+class maskedConv2DBatchNormRelu(nn.Module):
+    def __init__(self, in_channels, n_filters, k_size,  stride, padding, bias=True, dilation=1, with_bn=True):
+        super(maskedConv2DBatchNormRelu, self).__init__()
+
+        masked_conv = nn.Sequential(
+            MaskedConv2d('A', in_channels, n_filters, 7, 1, 3, bias=False), nn.BatchNorm2d(n_filters), nn.ReLU(True),
+            MaskedConv2d('B', n_filters, n_filters, 7, 1, 3, bias=False), nn.BatchNorm2d(n_filters), nn.ReLU(True),
+            # nn.Conv2d(n_filters, n_filters, 1)
+        )
+        
+        if with_bn:
+            self.cbr_unit = nn.Sequential(masked_conv,
+                                          nn.BatchNorm2d(int(n_filters)),
+                                          nn.ReLU(inplace=True),)
+        else:
+            self.cbr_unit = nn.Sequential(masked_conv,
+                                          nn.ReLU(inplace=True),)
+
+    def forward(self, inputs):
+        outputs = self.cbr_unit(inputs)
+        return outputs
+    
 
 class deconv2DBatchNormRelu(nn.Module):
     def __init__(self, in_channels, n_filters, k_size, stride, padding, bias=True):
@@ -96,7 +199,7 @@ class unetConv2(nn.Module):
             self.conv1 = nn.Sequential(nn.Conv2d(in_size, out_size, 3, 1, 0),
                                        nn.ReLU(),)
             self.conv2 = nn.Sequential(nn.Conv2d(out_size, out_size, 3, 1, 0),
-                                       nn.ReLU(),)
+                                       nn.ReLU() ,)
     def forward(self, inputs):
         outputs = self.conv1(inputs)
         outputs = self.conv2(outputs)
@@ -134,6 +237,19 @@ class segnetDown2(nn.Module):
         outputs, indices = self.maxpool_with_argmax(outputs)
         return outputs, indices, unpooled_shape
 
+class maskedSegnetDown2(nn.Module):
+    def __init__(self, in_size, out_size):
+        super(maskedSegnetDown2, self).__init__()
+        self.conv1 = maskedConv2DBatchNormRelu(in_size, out_size, 3, 1, 1)
+        self.conv2 = maskedConv2DBatchNormRelu(out_size, out_size, 3, 1, 1)
+        self.maxpool_with_argmax = nn.MaxPool2d(2, 2, return_indices=True)
+
+    def forward(self, inputs):
+        outputs = self.conv1(inputs)
+        outputs = self.conv2(outputs)
+        unpooled_shape = outputs.size()
+        outputs, indices = self.maxpool_with_argmax(outputs)
+        return outputs, indices, unpooled_shape
 
 class segnetDown3(nn.Module):
     def __init__(self, in_size, out_size):
@@ -151,6 +267,21 @@ class segnetDown3(nn.Module):
         outputs, indices = self.maxpool_with_argmax(outputs)
         return outputs, indices, unpooled_shape
 
+class maskedSegnetDown3(nn.Module):
+    def __init__(self, in_size, out_size):
+        super(maskedSegnetDown3, self).__init__()
+        self.conv1 = maskedConv2DBatchNormRelu(in_size, out_size, 3, 1, 1)
+        self.conv2 = maskedConv2DBatchNormRelu(out_size, out_size, 3, 1, 1)
+        self.conv3 = maskedConv2DBatchNormRelu(out_size, out_size, 3, 1, 1)
+        self.maxpool_with_argmax = nn.MaxPool2d(2, 2, return_indices=True)
+
+    def forward(self, inputs):
+        outputs = self.conv1(inputs)
+        outputs = self.conv2(outputs)
+        outputs = self.conv3(outputs)
+        unpooled_shape = outputs.size()
+        outputs, indices = self.maxpool_with_argmax(outputs)
+        return outputs, indices, unpooled_shape
 
 class segnetUp2(nn.Module):
     def __init__(self, in_size, out_size):
