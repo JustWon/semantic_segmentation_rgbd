@@ -26,6 +26,7 @@ from ptsemseg.models.FCN_RGBD_renet import *
 from ptsemseg.models.MaskedSegnet import *
 from ptsemseg.models.RecurrentSegnet import *
 from ptsemseg.models.GlocalContextNet import *
+from ptsemseg.models.FCN_RGBD_Hybrid import *
 
 def get_model(name, n_classes, version=None):
     model = _get_model_instance(name)
@@ -82,6 +83,11 @@ def get_model(name, n_classes, version=None):
     elif name in ['MaskedSegnet','RecurrentSegnet']:
         model = model(n_classes=n_classes, is_unpooling=True)
         
+    elif name in ['FCN_RGBD_Hybrid']:
+        model = model(n_classes=n_classes)
+        vgg16 = models.vgg16(pretrained=True)
+        model.init_vgg16_params(vgg16)
+        
     elif name == 'unet':
         model = model(n_classes=n_classes,
                       is_batchnorm=True,
@@ -121,6 +127,7 @@ def _get_model_instance(name):
             'FCN_RGBD_mask' : FCN_RGBD_mask,
             'FCN_RGBD_mask2' : FCN_RGBD_mask2,
             'FCN_RGBD_renet' : FCN_RGBD_renet,
+            'FCN_RGBD_Hybrid' : FCN_RGBD_Hybrid,
             'unet': unet,
             'segnet': segnet,
             'MaskedSegnet': MaskedSegnet,
