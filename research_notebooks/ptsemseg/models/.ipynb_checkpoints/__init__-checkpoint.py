@@ -16,9 +16,11 @@ from ptsemseg.models.frrn import *
 
 from ptsemseg.models.FCN_RGB import *
 from ptsemseg.models.FCN_RGB_mask import *
+from ptsemseg.models.FCN_RGB_mask2 import *
 from ptsemseg.models.FCN_RGB_renet import *
 from ptsemseg.models.FCN_RGBD import *
 from ptsemseg.models.FCN_RGBD_mask import *
+from ptsemseg.models.FCN_RGBD_mask2 import *
 from ptsemseg.models.FCN_RGBD_renet import *
 
 from ptsemseg.models.MaskedSegnet import *
@@ -66,8 +68,8 @@ def get_model(name, n_classes, version=None):
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
     
-    elif name in ['FCN_RGB', 'FCN_RGB_mask', 'FCN_RGB_renet',
-                  'FCN_RGBD', 'FCN_RGBD_mask', 'FCN_RGBD_renet']:
+    elif name in ['FCN_RGB', 'FCN_RGB_mask', 'FCN_RGB_mask2', 'FCN_RGB_renet',
+                  'FCN_RGBD', 'FCN_RGBD_mask', 'FCN_RGBD_mask2' ,'FCN_RGBD_renet']:
         model = model(n_classes=n_classes)
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
@@ -113,9 +115,11 @@ def _get_model_instance(name):
             'fcn_hha' : fcn_hha,
             'FCN_RGB' : FCN_RGB,
             'FCN_RGB_mask' : FCN_RGB_mask,
+            'FCN_RGB_mask2' : FCN_RGB_mask2,
             'FCN_RGB_renet' : FCN_RGB_renet,
             'FCN_RGBD' : FCN_RGBD,
             'FCN_RGBD_mask' : FCN_RGBD_mask,
+            'FCN_RGBD_mask2' : FCN_RGBD_mask2,
             'FCN_RGBD_renet' : FCN_RGBD_renet,
             'unet': unet,
             'segnet': segnet,
@@ -123,8 +127,8 @@ def _get_model_instance(name):
             'RecurrentSegnet': RecurrentSegnet,
             'GlocalContextNet': GlocalContextNet,
             'pspnet': pspnet,
-			'icnet': icnet,
-			'icnetBN': icnet,
+            'icnet': icnet,
+            'icnetBN': icnet,
             'linknet': linknet,
             'frrnA': frrn,
             'frrnB': frrn,

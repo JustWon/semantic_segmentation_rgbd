@@ -67,7 +67,7 @@ def validate(args):
         depths = Variable(depths.cuda(), volatile=True)
         #labels = Variable(labels.cuda(), volatile=True)
 
-        if (model_name in ['FCN_RGB', 'FCN_RGB_renet', 'FCN_RGB_mask']):
+        if (model_name in ['FCN_RGB', 'FCN_RGB_renet', 'FCN_RGB_mask', 'FCN_RGB_mask2']):
             outputs = model(images)
         else:
             outputs = model(images, depths)
