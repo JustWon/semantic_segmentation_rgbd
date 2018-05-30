@@ -11,6 +11,8 @@ from ptsemseg.models import get_model
 from ptsemseg.loss import *
 
 from NYUDv2Loader import *
+from SUNRGBDLoader import *
+from SUNRGBDLoader_HHA import *
 
 class trainer:
         
@@ -45,7 +47,11 @@ class trainer:
         self.parser = self._parser_setting()
         self.args = self.parser.parse_args(arg_str.split(' '))
         
-        self.data_path = '/home/dongwonshin/Desktop/Datasets/NYUDv2/'
+        if self.args.dataset == 'NYUDv2':
+            self.data_path = '/home/dongwonshin/Desktop/Datasets/NYUDv2/'
+        elif self.args.dataset == 'SUNRGBD':
+            self.data_path = '/home/dongwonshin/Desktop/Datasets/SUNRGBD/SUNRGBD/'
+        
     def __del__(self):
         torch.cuda.empty_cache()
 
@@ -53,9 +59,21 @@ class trainer:
         os.environ['CUDA_VISIBLE_DEVICES'] = self.args.gpu_idx
         
         # Setup Dataloader
-        self.t_loader = NYUDv2Loader(self.data_path, is_transform=True)
-        self.v_loader = NYUDv2Loader(self.data_path, is_transform=True, split='val')
-
+        if self.args.dataset == 'NYUDv2':
+            if (self.args.input_type in ['RGB', 'RGBD']):
+                self.t_loader = NYUDv2Loader(self.data_path, is_transform=True)
+                self.v_loader = NYUDv2Loader(self.data_path, is_transform=True, split='val')
+            elif (self.args.input_type == 'RGBHHA'):
+                self.t_loader = NYUDv2Loader_HHA(self.data_path, is_transform=True)
+                self.v_loader = NYUDv2Loader_HHA(self.data_path, is_transform=True, split='val')
+        elif self.args.dataset == 'SUNRGBD':
+            if (self.args.input_type in ['RGB', 'RGBD']):
+                self.t_loader = SUNRGBDLoader(self.data_path, is_transform=True)
+                self.v_loader = SUNRGBDLoader(self.data_path, is_transform=True, split='val')
+            elif (self.args.input_type == 'RGBHHA'):
+                self.t_loader = SUNRGBDLoader_HHA(self.data_path, is_transform=True)
+                self.v_loader = SUNRGBDLoader_HHA(self.data_path, is_transform=True, split='val')
+        
         self.n_classes = self.t_loader.n_classes
         self.trainloader = data.DataLoader(self.t_loader, batch_size=self.args.batch_size, num_workers=16, shuffle=True)
         self.valloader = data.DataLoader(self.v_loader, batch_size=self.args.batch_size, num_workers=16)
@@ -112,14 +130,14 @@ class trainer:
                 color_imgs = Variable(color_imgs.cuda())
                 label_imgs = Variable(label_imgs.cuda())
                 
-                if (self.args.input_type == 'RGBD'):
+                if (self.args.input_type in ['RGBD', 'RGBHHA']):
                     depth_imgs = Variable(depth_imgs.cuda())
 
                 self.optimizer.zero_grad()
                 
                 if (self.args.input_type == 'RGB'):
                     outputs = self.model(color_imgs)
-                elif (self.args.input_type == 'RGBD'):
+                elif (self.args.input_type in ['RGBD','RGBHHA']):
                     outputs = self.model(color_imgs, depth_imgs)
 
                 loss = self.loss_fn(input=outputs, target=label_imgs)
@@ -144,12 +162,12 @@ class trainer:
                 color_images_val = Variable(color_images_val.cuda(), volatile=True)
                 label_images_val = Variable(label_images_val.cuda(), volatile=True)
                 
-                if (self.args.input_type == 'RGBD'):
+                if (self.args.input_type in ['RGBD','RGBHHA']):
                     depth_images_val = Variable(depth_images_val.cuda(), volatile=True)
 
                 if (self.args.input_type == 'RGB'):
                     outputs = self.model(color_images_val)
-                elif (self.args.input_type == 'RGBD'):
+                elif (self.args.input_type in ['RGBD','RGBHHA']):
                     outputs = self.model(color_images_val, depth_images_val)
                     
                 pred = outputs.data.max(1)[1].cpu().numpy()

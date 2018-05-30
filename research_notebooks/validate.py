@@ -21,6 +21,7 @@ from ptsemseg.metrics import runningScore
 from ptsemseg.utils import convert_state_dict
 
 from SUNRGBDLoader import *
+from SUNRGBDLoader_HHA import *
 from NYUDv2Loader import *
 from NYUDv2Loader_HHA import *
 
@@ -41,9 +42,13 @@ def validate(args):
         t_loader = NYUDv2Loader_HHA(data_path, is_transform=True)
         v_loader = NYUDv2Loader_HHA(data_path, is_transform=True, split='val')
     elif (args.dataset == 'SUNRGBD'):
-        data_path = '/home/dongwonshin/Desktop/Datasets/SUNRGBD/SUNRGBD(light)/'
+        data_path = '/home/dongwonshin/Desktop/Datasets/SUNRGBD/SUNRGBD/'
         t_loader = SUNRGBDLoader(data_path, is_transform=True)
         v_loader = SUNRGBDLoader(data_path, is_transform=True, split='val')
+    elif (args.dataset == 'SUNRGBD_HHA'):
+        data_path = '/home/dongwonshin/Desktop/Datasets/SUNRGBD/SUNRGBD/'
+        t_loader = SUNRGBDLoader_HHA(data_path, is_transform=True)
+        v_loader = SUNRGBDLoader_HHA(data_path, is_transform=True, split='val')
 
     n_classes = t_loader.n_classes
     trainloader = data.DataLoader(t_loader, batch_size=args.batch_size, num_workers=16, shuffle=True)

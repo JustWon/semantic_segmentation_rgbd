@@ -22,7 +22,7 @@ class SUNRGBDLoader(data.Dataset):
         self.img_norm = img_norm
         self.img_size = img_size if isinstance(img_size, tuple) else (img_size, img_size)
         self.mean = np.array([104.00699, 116.66877, 122.67892])
-        self.depth_mean = 123.901
+        self.depth_mean = 0
         self.color_files = collections.defaultdict(list)
         self.depth_files = collections.defaultdict(list)
         self.label_files = collections.defaultdict(list)

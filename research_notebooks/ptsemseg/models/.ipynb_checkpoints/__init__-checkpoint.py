@@ -22,11 +22,16 @@ from ptsemseg.models.FCN_RGBD import *
 from ptsemseg.models.FCN_RGBD_mask import *
 from ptsemseg.models.FCN_RGBD_mask2 import *
 from ptsemseg.models.FCN_RGBD_renet import *
+from ptsemseg.models.FCN_RGBHHA import *
 
 from ptsemseg.models.MaskedSegnet import *
 from ptsemseg.models.RecurrentSegnet import *
 from ptsemseg.models.GlocalContextNet import *
+
 from ptsemseg.models.FCN_RGBD_Hybrid import *
+from ptsemseg.models.FCN_RGBHHA_Hybrid import *
+from ptsemseg.models.FCN_RGBHHA_renet import *
+from ptsemseg.models.FCN_RGBHHA_mask2 import *
 
 def get_model(name, n_classes, version=None):
     model = _get_model_instance(name)
@@ -70,7 +75,8 @@ def get_model(name, n_classes, version=None):
         model.init_vgg16_params(vgg16)
     
     elif name in ['FCN_RGB', 'FCN_RGB_mask', 'FCN_RGB_mask2', 'FCN_RGB_renet',
-                  'FCN_RGBD', 'FCN_RGBD_mask', 'FCN_RGBD_mask2' ,'FCN_RGBD_renet']:
+                  'FCN_RGBD', 'FCN_RGBD_mask', 'FCN_RGBD_mask2' ,'FCN_RGBD_renet',
+                  'FCN_RGBHHA', 'FCN_RGBHHA_Hybrid', 'FCN_RGBHHA_renet', 'FCN_RGBHHA_mask2']:
         model = model(n_classes=n_classes)
         vgg16 = models.vgg16(pretrained=True)
         model.init_vgg16_params(vgg16)
@@ -128,6 +134,10 @@ def _get_model_instance(name):
             'FCN_RGBD_mask2' : FCN_RGBD_mask2,
             'FCN_RGBD_renet' : FCN_RGBD_renet,
             'FCN_RGBD_Hybrid' : FCN_RGBD_Hybrid,
+            'FCN_RGBHHA' : FCN_RGBHHA,
+            'FCN_RGBHHA_Hybrid' : FCN_RGBHHA_Hybrid,
+            'FCN_RGBHHA_renet' : FCN_RGBHHA_renet,
+            'FCN_RGBHHA_mask2' : FCN_RGBHHA_mask2,
             'unet': unet,
             'segnet': segnet,
             'MaskedSegnet': MaskedSegnet,
